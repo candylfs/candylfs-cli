@@ -43,25 +43,25 @@ jobs:
           pip install pyinstaller
           pip install -e .
       
-      - name: Embed API endpoints (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Embed API endpoints
+        env:
+          API_ENDPOINT: ${{ secrets.CANDY_LFS_API_ENDPOINT }}
+          LFS_ENDPOINT: ${{ secrets.CANDY_LFS_LFS_ENDPOINT }}
         run: |
-          sed -i.bak 's|^__BUILD_API_ENDPOINT__ = ""$|__BUILD_API_ENDPOINT__ = "${{ secrets.CANDY_LFS_API_ENDPOINT }}"|' src/candy_lfs/config.py
-          sed -i.bak 's|^__BUILD_LFS_ENDPOINT__ = ""$|__BUILD_LFS_ENDPOINT__ = "${{ secrets.CANDY_LFS_LFS_ENDPOINT }}"|' src/candy_lfs/config.py
+          python -c "
+          import os
+          path = 'src/candy_lfs/config.py'
+          content = open(path).read()
+          content = content.replace('__BUILD_API_ENDPOINT__ = \"\"', f'__BUILD_API_ENDPOINT__ = \"{os.environ[\"API_ENDPOINT\"]}\"')
+          content = content.replace('__BUILD_LFS_ENDPOINT__ = \"\"', f'__BUILD_LFS_ENDPOINT__ = \"{os.environ[\"LFS_ENDPOINT\"]}\"')
+          open(path, 'w').write(content)
+          "
 
       - name: Build with PyInstaller (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           pyinstaller --onefile --name candy-lfs-${{ matrix.platform }}-${{ matrix.arch }} src/candy_lfs/__main__.py
       
-      - name: Embed API endpoints (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          $content = Get-Content src/candy_lfs/config.py
-          $content = $content -replace '^__BUILD_API_ENDPOINT__ = ""$', '__BUILD_API_ENDPOINT__ = "${{ secrets.CANDY_LFS_API_ENDPOINT }}"'
-          $content = $content -replace '^__BUILD_LFS_ENDPOINT__ = ""$', '__BUILD_LFS_ENDPOINT__ = "${{ secrets.CANDY_LFS_LFS_ENDPOINT }}"'
-          $content | Set-Content src/candy_lfs/config.py
-
       - name: Build with PyInstaller (Windows)
         if: runner.os == 'Windows'
         run: |

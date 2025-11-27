@@ -1,14 +1,14 @@
 import json
 import os
+import subprocess
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlparse
 
-import keyring
 import yaml
 
 CONFIG_DIR = Path.home() / ".candy-lfs"
 CONFIG_FILE = CONFIG_DIR / "config.yaml"
-KEYRING_SERVICE = "candy-lfs"
 DEFAULT_API_ENDPOINT = os.getenv("CANDY_LFS_API_ENDPOINT", "")
 
 
@@ -52,35 +52,76 @@ class Config:
         self._config["current_tenant"] = value
         self._save_config()
 
-    def get_token(self, tenant_id: str) -> Optional[str]:
+    def _get_git_credential_host(self, tenant_id: str) -> str:
+        if self.api_endpoint:
+            parsed = urlparse(self.api_endpoint)
+            return f"{tenant_id}.{parsed.netloc}"
+        return f"{tenant_id}.candy-lfs.local"
+
+    def _git_credential_get(self, host: str, username: str) -> Optional[str]:
         try:
-            return keyring.get_password(KEYRING_SERVICE, f"token:{tenant_id}")
+            result = subprocess.run(
+                ["git", "credential", "fill"],
+                input=f"protocol=https\nhost={host}\nusername={username}\n\n",
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                for line in result.stdout.split("\n"):
+                    if line.startswith("password="):
+                        return line.split("=", 1)[1]
         except Exception:
-            return None
+            pass
+        return None
+
+    def _git_credential_store(self, host: str, username: str, password: str) -> None:
+        try:
+            subprocess.run(
+                ["git", "credential", "approve"],
+                input=f"protocol=https\nhost={host}\nusername={username}\npassword={password}\n\n",
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+        except Exception:
+            pass
+
+    def _git_credential_erase(self, host: str, username: str) -> None:
+        try:
+            subprocess.run(
+                ["git", "credential", "reject"],
+                input=f"protocol=https\nhost={host}\nusername={username}\n\n",
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+        except Exception:
+            pass
+
+    def get_token(self, tenant_id: str) -> Optional[str]:
+        host = self._get_git_credential_host(tenant_id)
+        return self._git_credential_get(host, "token")
 
     def set_token(self, tenant_id: str, token: str) -> None:
-        keyring.set_password(KEYRING_SERVICE, f"token:{tenant_id}", token)
+        host = self._get_git_credential_host(tenant_id)
+        self._git_credential_store(host, "token", token)
 
     def delete_token(self, tenant_id: str) -> None:
-        try:
-            keyring.delete_password(KEYRING_SERVICE, f"token:{tenant_id}")
-        except keyring.errors.PasswordDeleteError:
-            pass
+        host = self._get_git_credential_host(tenant_id)
+        self._git_credential_erase(host, "token")
 
     def get_github_token(self, tenant_id: str) -> Optional[str]:
-        try:
-            return keyring.get_password(KEYRING_SERVICE, f"github:{tenant_id}")
-        except Exception:
-            return None
+        host = self._get_git_credential_host(tenant_id)
+        return self._git_credential_get(host, "github")
 
     def set_github_token(self, tenant_id: str, token: str) -> None:
-        keyring.set_password(KEYRING_SERVICE, f"github:{tenant_id}", token)
+        host = self._get_git_credential_host(tenant_id)
+        self._git_credential_store(host, "github", token)
 
     def delete_github_token(self, tenant_id: str) -> None:
-        try:
-            keyring.delete_password(KEYRING_SERVICE, f"github:{tenant_id}")
-        except keyring.errors.PasswordDeleteError:
-            pass
+        host = self._get_git_credential_host(tenant_id)
+        self._git_credential_erase(host, "github")
 
     def get_tenant_list(self) -> list[dict[str, Any]]:
         return self._config.get("tenants", [])

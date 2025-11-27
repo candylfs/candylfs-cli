@@ -1,9 +1,12 @@
 import sys
+import subprocess
+from pathlib import Path
 from typing import Optional
 
 import click
 from rich.console import Console
 from rich.table import Table
+from rich.prompt import Confirm
 
 from . import __version__
 from .api import APIClient, APIError
@@ -63,7 +66,7 @@ def show_config() -> None:
         table.add_column("Role")
         table.add_column("Token")
         for tenant in tenants:
-            has_token = "✓" if config.get_token(tenant["tenant_id"]) else "✗"
+            has_token = "✓" if config.get_github_token(tenant["tenant_id"]) else "✗"
             table.add_row(tenant["tenant_id"], tenant["name"], tenant["role"], has_token)
         console.print(table)
 
@@ -92,15 +95,17 @@ def login(tenant_id: str) -> None:
         github_user = token_response["github_user"]
         permission = token_response["permission"]
         config.set_github_token(tenant_id, token)
-        client_with_token = APIClient(config.api_endpoint, token)
-        tenant_info = client_with_token.get_tenant(tenant_id)
-        config.add_tenant(tenant_id, tenant_info["name"], tenant_info["role"])
+        config.add_tenant(tenant_id, tenant_id, "member")  # Default role
         if not config.current_tenant:
             config.current_tenant = tenant_id
         console.print(f"[green]✓[/green] Logged in as [bold]{github_user}[/bold] ({permission})")
         console.print(f"[green]✓[/green] Token stored for tenant: {tenant_id}")
     except APIError as e:
         console.print(f"[red]✗[/red] {e.message}", style="bold red")
+        if e.status_code:
+            console.print(f"[dim]Status code: {e.status_code}[/dim]")
+        if e.details:
+            console.print(f"[dim]Details: {e.details}[/dim]")
         sys.exit(1)
 
 

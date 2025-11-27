@@ -53,8 +53,10 @@ jobs:
           import os
           path = 'src/candy_lfs/config.py'
           content = open(path).read()
-          content = content.replace('__BUILD_API_ENDPOINT__ = \"\"', f'__BUILD_API_ENDPOINT__ = \"{os.environ[\"API_ENDPOINT\"]}\"')
-          content = content.replace('__BUILD_LFS_ENDPOINT__ = \"\"', f'__BUILD_LFS_ENDPOINT__ = \"{os.environ[\"LFS_ENDPOINT\"]}\"')
+          api = os.environ.get('API_ENDPOINT', '').strip()
+          lfs = os.environ.get('LFS_ENDPOINT', '').strip()
+          content = content.replace('__BUILD_API_ENDPOINT__ = \"\"', f'__BUILD_API_ENDPOINT__ = \"{api}\"')
+          content = content.replace('__BUILD_LFS_ENDPOINT__ = \"\"', f'__BUILD_LFS_ENDPOINT__ = \"{lfs}\"')
           open(path, 'w').write(content)
           "
 

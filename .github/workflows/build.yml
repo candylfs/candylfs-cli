@@ -48,14 +48,14 @@ jobs:
         env:
           CANDY_LFS_API_ENDPOINT: ${{ secrets.CANDY_LFS_API_ENDPOINT }}
         run: |
-          pyinstaller --onefile --name candy-lfs-${{ matrix.platform }}-${{ matrix.arch }} --console src/candy_lfs/cli.py
+          pyinstaller --onefile --name candy-lfs-${{ matrix.platform }}-${{ matrix.arch }} -m candy_lfs.cli
       
       - name: Build with PyInstaller (Windows)
         if: runner.os == 'Windows'
         env:
           CANDY_LFS_API_ENDPOINT: ${{ secrets.CANDY_LFS_API_ENDPOINT }}
         run: |
-          pyinstaller --onefile --name candy-lfs-${{ matrix.platform }}-${{ matrix.arch }}.exe --console src/candy_lfs/cli.py
+          pyinstaller --onefile --name candy-lfs-${{ matrix.platform }}-${{ matrix.arch }}.exe -m candy_lfs.cli
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4

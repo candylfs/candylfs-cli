@@ -9,6 +9,7 @@ import yaml
 CONFIG_DIR = Path.home() / ".candy-lfs"
 CONFIG_FILE = CONFIG_DIR / "config.yaml"
 KEYRING_SERVICE = "candy-lfs"
+DEFAULT_API_ENDPOINT = os.getenv("CANDY_LFS_API_ENDPOINT", "")
 
 
 class Config:
@@ -24,7 +25,7 @@ class Config:
                 self._config = yaml.safe_load(f) or {}
         else:
             self._config = {
-                "api_endpoint": os.getenv("CANDY_LFS_API_ENDPOINT", ""),
+                "api_endpoint": DEFAULT_API_ENDPOINT,
                 "current_tenant": None,
             }
 

@@ -45,11 +45,15 @@ jobs:
       
       - name: Build with PyInstaller (Linux/macOS)
         if: runner.os != 'Windows'
+        env:
+          CANDY_LFS_API_ENDPOINT: ${{ secrets.CANDY_LFS_API_ENDPOINT }}
         run: |
           pyinstaller --onefile --name candy-lfs-${{ matrix.platform }}-${{ matrix.arch }} --console src/candy_lfs/cli.py
       
       - name: Build with PyInstaller (Windows)
         if: runner.os == 'Windows'
+        env:
+          CANDY_LFS_API_ENDPOINT: ${{ secrets.CANDY_LFS_API_ENDPOINT }}
         run: |
           pyinstaller --onefile --name candy-lfs-${{ matrix.platform }}-${{ matrix.arch }}.exe --console src/candy_lfs/cli.py
       

@@ -116,18 +116,6 @@ class Config:
         except Exception:
             pass
 
-    def get_token(self, tenant_id: str) -> Optional[str]:
-        host, path = self._get_git_credential_info(tenant_id)
-        return self._git_credential_get(host, path, "token")
-
-    def set_token(self, tenant_id: str, token: str) -> None:
-        host, path = self._get_git_credential_info(tenant_id)
-        self._git_credential_store(host, path, "token", token)
-
-    def delete_token(self, tenant_id: str) -> None:
-        host, path = self._get_git_credential_info(tenant_id)
-        self._git_credential_erase(host, path, "token")
-
     def get_github_token(self, tenant_id: str) -> Optional[str]:
         host, path = self._get_git_credential_info(tenant_id)
         return self._git_credential_get(host, path, tenant_id)
@@ -159,5 +147,4 @@ class Config:
         tenants = self._config.get("tenants", [])
         self._config["tenants"] = [t for t in tenants if t["tenant_id"] != tenant_id]
         self._save_config()
-        self.delete_token(tenant_id)
         self.delete_github_token(tenant_id)

@@ -7,7 +7,7 @@ from rich.table import Table
 
 from . import __version__
 from .api import APIClient, APIError
-from .config import Config
+from .config import Config, __BUILD_API_ENDPOINT__, __BUILD_LFS_ENDPOINT__
 
 console = Console()
 config = Config()
@@ -46,6 +46,12 @@ def show_config() -> None:
             has_token = "✓" if config.get_github_token(tenant["tenant_id"]) else "✗"
             table.add_row(tenant["tenant_id"], tenant["name"], has_token)
         console.print(table)
+
+
+@main.command()
+def apiconfig() -> None:
+    console.print(f"[bold]CANDY_LFS_API_ENDPOINT:[/bold] {__BUILD_API_ENDPOINT__ or '[dim]not set[/dim]'}")
+    console.print(f"[bold]CANDY_LFS_LFS_ENDPOINT:[/bold] {__BUILD_LFS_ENDPOINT__ or '[dim]not set[/dim]'}")
 
 
 @main.command()

@@ -131,15 +131,14 @@ class Config:
     def get_tenant_list(self) -> list[dict[str, Any]]:
         return self._config.get("tenants", [])
 
-    def add_tenant(self, tenant_id: str, name: str, role: str) -> None:
+    def add_tenant(self, tenant_id: str, name: str) -> None:
         tenants = self._config.get("tenants", [])
         for tenant in tenants:
             if tenant["tenant_id"] == tenant_id:
                 tenant["name"] = name
-                tenant["role"] = role
                 break
         else:
-            tenants.append({"tenant_id": tenant_id, "name": name, "role": role})
+            tenants.append({"tenant_id": tenant_id, "name": name})
         self._config["tenants"] = tenants
         self._save_config()
 

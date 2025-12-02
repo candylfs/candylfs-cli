@@ -41,11 +41,10 @@ def show_config() -> None:
         table = Table()
         table.add_column("Tenant ID")
         table.add_column("Name")
-        table.add_column("Role")
         table.add_column("Token")
         for tenant in tenants:
             has_token = "✓" if config.get_github_token(tenant["tenant_id"]) else "✗"
-            table.add_row(tenant["tenant_id"], tenant["name"], tenant["role"], has_token)
+            table.add_row(tenant["tenant_id"], tenant["name"], has_token)
         console.print(table)
 
 
@@ -73,7 +72,7 @@ def login(tenant_id: str) -> None:
         github_user = token_response["github_user"]
         permission = token_response["permission"]
         config.set_github_token(tenant_id, token)
-        config.add_tenant(tenant_id, tenant_id, "member")  # Default role
+        config.add_tenant(tenant_id, tenant_id)
         if not config.current_tenant:
             config.current_tenant = tenant_id
         console.print(f"[green]✓[/green] Logged in as [bold]{github_user}[/bold] ({permission})")
@@ -103,23 +102,6 @@ def logout(tenant_id: Optional[str]) -> None:
 @main.group()
 def tenant() -> None:
     pass
-
-
-@tenant.command("list")
-def list_tenants() -> None:
-    tenants = config.get_tenant_list()
-    if not tenants:
-        console.print("[dim]No tenants configured. Use 'candy-lfs login' to authenticate.[/dim]")
-        return
-    table = Table(title="Your Tenants")
-    table.add_column("Tenant ID")
-    table.add_column("Name")
-    table.add_column("Role")
-    table.add_column("Current")
-    for tenant in tenants:
-        is_current = "✓" if tenant["tenant_id"] == config.current_tenant else ""
-        table.add_row(tenant["tenant_id"], tenant["name"], tenant["role"], is_current)
-    console.print(table)
 
 
 @tenant.command("select")

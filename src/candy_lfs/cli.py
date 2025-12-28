@@ -84,6 +84,17 @@ def login(tenant_id: str) -> None:
         github_user = token_response["github_user"]
         permission = token_response["permission"]
         repo_names = token_response.get("repo_names", [])
+
+        # Revoke old token on server before replacing
+        old_repo_names = config.get_tenant_repos(tenant_id)
+        if old_repo_names:
+            old_token = config.get_github_token(tenant_id, old_repo_names[0])
+            if old_token and old_token != token:
+                try:
+                    client.revoke_token(old_token)
+                except APIError:
+                    pass  # Ignore errors, old token may already be invalid
+
         config.delete_all_tenant_credentials(tenant_id)
         for rn in repo_names:
             config.set_github_token(tenant_id, token, rn)
@@ -109,7 +120,28 @@ def logout(tenant_id: Optional[str]) -> None:
         tenant_id = config.current_tenant
         if not tenant_id:
             raise click.ClickException("No tenant specified and no current tenant selected")
-    config.delete_github_token(tenant_id)
+
+    # Get token from first repo to revoke on server
+    repo_names = config.get_tenant_repos(tenant_id)
+    token = None
+    if repo_names:
+        token = config.get_github_token(tenant_id, repo_names[0])
+
+    # Revoke token on server if we have API endpoint and token
+    if token and config.api_endpoint:
+        try:
+            client = APIClient(config.api_endpoint)
+            client.revoke_token(token)
+            console.print(f"[green]✓[/green] Token revoked on server")
+        except APIError as e:
+            # Continue with local cleanup even if server revoke fails
+            if e.status_code == 404:
+                console.print(f"[dim]Token already revoked or expired[/dim]")
+            else:
+                console.print(f"[yellow]![/yellow] Failed to revoke token on server: {e.message}")
+
+    # Delete all local credentials
+    config.delete_all_tenant_credentials(tenant_id)
     if config.current_tenant == tenant_id:
         config.current_tenant = None
     console.print(f"[green]✓[/green] Logged out from tenant: {tenant_id}")

@@ -80,3 +80,24 @@ class APIClient:
                             time.sleep(interval)
                             continue
                     raise
+
+    def revoke_token(self, token: str) -> None:
+        """Revoke an LFS token on the server side."""
+        url = f"{self.base_url}/auth/token/revoke"
+        try:
+            response = self.session.post(
+                url,
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=30
+            )
+            if response.status_code == 204:
+                return
+            if response.status_code >= 400:
+                try:
+                    error_data = response.json()
+                    message = error_data.get("error_description", error_data.get("error", "unknown_error"))
+                except Exception:
+                    message = response.text
+                raise APIError(response.status_code, message, error_data if 'error_data' in locals() else None)
+        except requests.RequestException as e:
+            raise APIError(0, f"Network error: {str(e)}")
